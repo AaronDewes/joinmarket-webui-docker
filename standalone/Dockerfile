@@ -70,8 +70,6 @@ RUN apt-get update \
     # ---
     # image dependencies
     tini supervisor iproute2 procps vim \
-    # servers dependencies (see `install.sh`)
-    build-essential automake pkg-config libtool libltdl-dev python3-dev python3-setuptools python3-pip \
     # ui dependencies
     nginx \
     # ---
@@ -93,7 +91,21 @@ ENV DEFAULT_AUTO_START /root/autostart
 ENV AUTO_START ${DATADIR}/autostart
 ENV PATH /src/scripts:$PATH
 
-RUN ./install.sh --docker-install --without-qt
+RUN apt install -qqy \
+    # servers build dependencies (see `install.sh`)
+    build-essential automake pkg-config libtool libltdl-dev python3-dev python3-setuptools python3-pip && \ 
+    ./install.sh --docker-install --without-qt && \
+    apt remove -qq -y \
+    # servers build dependencies (see `install.sh`)
+    build-essential automake pkg-config python3-dev python3-setuptools && \
+    apt autoremove -y -qq && \
+    apt install -y -qq libltdl7 \
+    && apt-get clean \
+    && apt-get remove --purge --auto-remove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/apt/sources.list.d/nginx.list \
+    && rm -f /var/log/dpkg.log
+
 RUN rm -rf install.sh deps/cache/ test/ .git/ .gitignore .github/ .coveragerc joinmarket-qt.desktop
 
 WORKDIR /src/scripts
